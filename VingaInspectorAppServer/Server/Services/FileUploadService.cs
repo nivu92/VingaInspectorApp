@@ -13,16 +13,20 @@ namespace Server.Services
         private readonly ILogger<FileUploadService> _logger;
         private readonly IConfiguration _configuration;
         private readonly string _uploadDirectory;
+        private readonly IMinioService _minioService;
 
-        public FileUploadService(ILogger<FileUploadService> logger, IConfiguration configuration)
+        public FileUploadService(
+            ILogger<FileUploadService> logger,
+            IConfiguration configuration,
+            IMinioService minioService)
         {
             _logger = logger;
             _configuration = configuration;
+            _minioService = minioService;
 
-            // Get upload directory from configuration or use default
-            _uploadDirectory = _configuration["FileUpload:UploadDirectory"] ?? Path.Combine(Directory.GetCurrentDirectory(), "Uploads");
-
-            // Ensure directory exists
+            // Optional local file saving logic:
+            _uploadDirectory = _configuration["FileUpload:UploadDirectory"]
+                               ?? Path.Combine(Directory.GetCurrentDirectory(), "Uploads");
             if (!Directory.Exists(_uploadDirectory))
             {
                 Directory.CreateDirectory(_uploadDirectory);
@@ -33,13 +37,16 @@ namespace Server.Services
         {
             try
             {
-                // Log the location if it exists
+                // ---- Existing logic (saving locally, logs, etc.) ----
                 if (!string.IsNullOrEmpty(request.ClientName))
                 {
                     _logger.LogInformation($"Processing upload for location: {request.ClientName}");
                 }
 
-                // Create directory path based on location (if provided)
+                // (Optional) Save locally as you do now. 
+                // Or you can skip the local write entirely if you only want MinIO.
+
+                // ---- [1] Save locally (OPTIONAL) ----
                 string baseDir = _uploadDirectory;
                 if (!string.IsNullOrEmpty(request.ClientName))
                 {
@@ -50,7 +57,6 @@ namespace Server.Services
                     }
                 }
 
-                // Create a unique subdirectory for this upload (using timestamp)
                 var timestamp = DateTime.Now.ToString("yyyyMMddHHmmss");
                 var userDirectory = Path.Combine(baseDir, request.Email.Replace("@", "_at_"), timestamp);
 
@@ -59,7 +65,6 @@ namespace Server.Services
                     Directory.CreateDirectory(userDirectory);
                 }
 
-                // Save each file to the directory
                 foreach (var file in request.Files)
                 {
                     if (file.Length > 0)
@@ -70,13 +75,12 @@ namespace Server.Services
                         {
                             await file.CopyToAsync(stream);
                         }
-
                         _logger.LogInformation($"File {file.FileName} saved to {filePath}");
                     }
                 }
 
-                // Here you would add your own logic for further processing
-                // such as storing metadata in a database, triggering workflows, etc.
+                // ---- [2] Upload to MinIO ----
+                await _minioService.UploadFilesToMinioAsync(request);
 
                 return true;
             }

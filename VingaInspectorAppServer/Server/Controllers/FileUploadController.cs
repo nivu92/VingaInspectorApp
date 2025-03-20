@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Cors;
 using Server.Interfaces;
 using Server.Models;
+using System.Text.Json;
 
 namespace Server.Controllers
 {
@@ -18,6 +19,23 @@ namespace Server.Controllers
         {
             _fileUploadService = fileUploadService;
             _logger = logger;
+        }
+
+        [HttpPost("webhook")]
+        public IActionResult Webhook([FromBody] JsonElement minioEvent)
+        {
+            // The entire MinIO event JSON is in 'minioEvent'.
+            // Typically, you'd parse out the "Records" array, the "s3.bucket.name", "s3.object.key", etc.
+
+            // For example:
+            var eventString = minioEvent.ToString();
+            Console.WriteLine("Received MinIO event:\n" + eventString);
+
+            // If you need to extract the key:
+            // var key = minioEvent.GetProperty("Records")[0].GetProperty("s3").GetProperty("object").GetProperty("key").GetString();
+
+            // Return 200 OK
+            return Ok();
         }
 
         [HttpPost("upload")]
