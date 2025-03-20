@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload Form</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .logo {
+            margin-bottom: 20px;
+        }
+        
+        .dragonfly {
+            width: 60px;
+        }
+        
+        .upload-form {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .drop-zone {
+            width: 100%;
+            min-height: 60px;
+            border: 2px dashed #bbb;
+            border-radius: 5px;
+            background-color: #f8fcfc;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+            cursor: pointer;
+        }
+        
+        .drop-zone-message {
+            display: flex;
+            align-items: center;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .drop-zone-arrow {
+            margin-right: 10px;
+        }
+        
+        .file-list {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .file-info {
+            display: flex;
+            align-items: center;
+        }
+        
+        .file-icon {
+            margin-right: 10px;
+            color: #555;
+        }
+        
+        .file-name {
+            font-size: 14px;
+            color: #333;
+        }
+        
+        .file-size {
+            font-size: 14px;
+            color: #777;
+            margin-left: 5px;
+        }
+        
+        .remove-file {
+            cursor: pointer;
+            font-size: 18px;
+            color: #555;
+        }
+        
+        .email-field {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        
+        .email-label {
+            display: block;
+            margin-bottom: 10px;
+            color: #555;
+            font-size: 14px;
+        }
+        
+        .email-input {
+            width: 300px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+        
+        .email-input.invalid {
+            border-color: #e74c3c;
+        }
+        
+        .send-button {
+            background-color: #3cb4c3;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .send-button:hover:not(:disabled) {
+            background-color: #2a9ba9;
+        }
+        
+        .send-button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        
+        /* Show elements when files are added (controlled by JavaScript) */
+        .has-files .file-list, 
+        .has-files .files-count {
+            display: block;
+        }
+        
+        /* Toast notification styles */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        
+        .toast {
+            background-color: #e74c3c;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            animation: slideIn 0.3s, fadeOut 0.5s 2.5s forwards;
+            max-width: 300px;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; visibility: hidden; }
+        }
+        
+        .toast-icon {
+            margin-right: 10px;
+            font-size: 18px;
+        }
+        
+        .toast-message {
+            flex-grow: 1;
+            font-size: 14px;
+        }
+        
+        /* Loading spinner */
+        .spinner {
+            display: none;
+            width: 40px;
+            height: 40px;
+            margin: 20px auto;
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 4px solid #3cb4c3;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Response message */
+        .response-message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="logo">
+        <img class="dragonfly" src="icons/vinga-icon.svg" alt="Dragonfly Logo" />
+    </div>
+    
+    <form class="upload-form" id="upload-form">
+        <div class="drop-zone" id="drop-zone">
+            <div class="drop-zone-message">
+                <span class="drop-zone-arrow">↑</span>
+                <span>Choose PDF files or drop PDF files here</span>
+            </div>
+            <div class="files-count">0 files, 0 MB</div>
+        </div>
+        
+        <div class="file-list" id="file-list">
+            <!-- File items will be added here by JavaScript -->
+        </div>
+        
+        <div class="email-field">
+            <label class="email-label" for="email">Please enter your email address</label>
+            <input type="email" id="email" class="email-input" placeholder="nikola.vujasinovic@sokigo.com" required>
+            <span id="email-error" style="color: #e74c3c; font-size: 12px; margin-top: 5px; display: none;">* Email is required</span>
+        </div>
+        
+        <button type="submit" class="send-button" disabled>Send files</button>
+        
+        <div class="spinner" id="spinner"></div>
+        <div class="response-message" id="response-message"></div>
+    </form>
+    
+    <input type="file" id="file-input" accept=".pdf" multiple style="display: none;">
+    
+    <div class="toast-container" id="toast-container">
+        <!-- Toast notifications will be added here by JavaScript -->
+    </div>
+    
+    <script>
+        // Server URL from the output
+        const API_URL = 'https://localhost:7261/api/FileUpload/upload';
+        
+        // We will read ?client=xxx from the URL
+        // e.g.  http://10.100.50.46:8080/?client=client_name_1
+        //       => clientName = "client_name_1"
+        const urlParams = new URLSearchParams(window.location.search);
+        const clientName = urlParams.get('client') || "";
+        
+        // Get DOM elements
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const fileList = document.getElementById('file-list');
+        const uploadForm = document.getElementById('upload-form');
+        const emailInput = document.getElementById('email');
+        const sendButton = document.querySelector('.send-button');
+        const spinner = document.getElementById('spinner');
+        const responseMessage = document.getElementById('response-message');
+        
+        // Keep track of selected files
+        let selectedFiles = [];
+        let totalSize = 0;
+        
+        // Email validation function
+        function validateEmail(email) {
+            const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+            return re.test(String(email).toLowerCase());
+        }
+        
+        // Function to set button state based on email validity and file selection
+        function updateButtonState() {
+            const isEmailValid = validateEmail(emailInput.value);
+            const hasFiles = selectedFiles.length > 0;
+            const emailError = document.getElementById('email-error');
+            
+            // Button is enabled only if email is valid AND there are files
+            sendButton.disabled = !isEmailValid || !hasFiles;
+            
+            if (isEmailValid) {
+                emailInput.classList.remove('invalid');
+                emailError.style.display = 'none';
+            } else {
+                emailInput.classList.add('invalid');
+                emailError.style.display = 'block';
+            }
+        }
+        
+        // Check email validity on input
+        emailInput.addEventListener('input', updateButtonState);
+        
+        // Cookie functions
+        function setCookie(name, value, days) {
+            let expires = "";
+            if (days) {
+                const date = new Date();
+                date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+                expires = "; expires=" + date.toUTCString();
+            }
+            document.cookie = name + "=" + (value || "") + expires + "; path=/";
+        }
+        
+        function getCookie(name) {
+            const nameEQ = name + "=";
+            const ca = document.cookie.split(';');
+            for(let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+            }
+            return null;
+        }
+
+        // Helper function to reset drop zone to 0 files, 0 MB
+        function resetDropZone() {
+            fileList.innerHTML = '';
+            selectedFiles = [];
+            totalSize = 0;
+            updateFilesCount();
+            uploadForm.classList.remove('has-files');
+        }
+        
+        // Load email from cookie if available and reset drop zone on page load
+        window.addEventListener('load', () => {
+            const savedEmail = getCookie('userEmail');
+            if (savedEmail) {
+                emailInput.value = savedEmail;
+            }
+            // Reset drop zone so it shows 0 files, 0 MB
+            resetDropZone();
+            // Update button state
+            updateButtonState();
+        });
+        
+        // Function to show toast notification
+        function showToast(message) {
+            const toastContainer = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = `
+                <span class="toast-icon">⚠️</span>
+                <span class="toast-message">${message}</span>
+            `;
+            
+            toastContainer.appendChild(toast);
+            
+            // Remove toast after animation completes
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+        
+        // Function to check if file is PDF
+        function isPdfFile(file) {
+            return file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+        }
+        
+        // Click on drop zone to open file dialog
+        dropZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        // Handle file selection
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+        
+        // Handle drag and drop
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = '#3cb4c3';
+        });
+        
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.style.borderColor = '#bbb';
+        });
+        
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = '#bbb';
+            
+            if (e.dataTransfer.files.length) {
+                handleFiles(e.dataTransfer.files);
+            }
+        });
+        
+        // Process the selected files
+        function handleFiles(files) {
+            let validFilesAdded = false;
+            
+            for (const file of files) {
+                // Check if file is PDF
+                if (!isPdfFile(file)) {
+                    showToast(`"${file.name}" is not a PDF file. Only PDF files are allowed.`);
+                    continue;
+                }
+                
+                // Add to our array
+                selectedFiles.push(file);
+                validFilesAdded = true;
+                
+                // Add file size to total
+                totalSize += file.size;
+                
+                // Create file item element
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                
+                // Format file size
+                const fileSize = formatFileSize(file.size);
+                
+                fileItem.innerHTML = `
+                    <div class="file-info">
+                        <span class="file-icon">📄</span>
+                        <span class="file-name">${file.name}</span>
+                        <span class="file-size">${fileSize}</span>
+                    </div>
+                    <span class="remove-file" data-name="${file.name}">×</span>
+                `;
+                
+                fileList.appendChild(fileItem);
+            }
+            
+            if (validFilesAdded) {
+                // Update files count display
+                updateFilesCount();
+                
+                // Show the file list
+                uploadForm.classList.add('has-files');
+                
+                // Update button state
+                updateButtonState();
+            }
+        }
+        
+        // Format file size in KB or MB
+        function formatFileSize(bytes) {
+            if (bytes < 1024 * 1024) {
+                return (bytes / 1024).toFixed(1) + ' KB';
+            } else {
+                return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+            }
+        }
+        
+        // Update the files count display
+        function updateFilesCount() {
+            const filesCount = document.querySelector('.files-count');
+            const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(1);
+            filesCount.textContent = `${selectedFiles.length} files, ${totalSizeMB} MB`;
+        }
+        
+        // Handle removing files
+        fileList.addEventListener('click', (e) => {
+            if (e.target.classList.contains('remove-file')) {
+                const fileName = e.target.getAttribute('data-name');
+                
+                // Find index of file to remove
+                const fileIndex = selectedFiles.findIndex(file => file.name === fileName);
+                
+                if (fileIndex !== -1) {
+                    // Subtract file size from total
+                    totalSize -= selectedFiles[fileIndex].size;
+                    
+                    // Remove file from array
+                    selectedFiles.splice(fileIndex, 1);
+                    
+                    // Remove file item element
+                    e.target.closest('.file-item').remove();
+                    
+                    // Update files count
+                    updateFilesCount();
+                    
+                    // Hide file list if no files left
+                    if (selectedFiles.length === 0) {
+                        uploadForm.classList.remove('has-files');
+                    }
+                    
+                    // Update button state
+                    updateButtonState();
+                }
+            }
+        });
+        
+        // Show response message
+        function showResponseMessage(message, isError = false) {
+            responseMessage.textContent = message;
+            responseMessage.className = 'response-message ' + (isError ? 'error' : 'success');
+            responseMessage.style.display = 'block';
+            
+            // Hide after 5 seconds if it's a success message
+            if (!isError) {
+                setTimeout(() => {
+                    responseMessage.style.display = 'none';
+                }, 5000);
+            }
+        }
+        
+        // Handle form submission
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Validate email again
+            if (!validateEmail(emailInput.value)) {
+                showResponseMessage('Please enter a valid email address', true);
+                emailInput.focus();
+                return;
+            }
+            
+            // Check if files are selected
+            if (selectedFiles.length === 0) {
+                showResponseMessage('Please select at least one file', true);
+                return;
+            }
+            
+            try {
+                // Show loading spinner
+                spinner.style.display = 'block';
+                responseMessage.style.display = 'none';
+                sendButton.disabled = true;
+                
+                // Create FormData object
+                const formData = new FormData();
+                formData.append('Email', emailInput.value);
+                
+                // Include clientName from the query param
+                formData.append('ClientName', clientName);
+                
+                // Add all files
+                selectedFiles.forEach(file => {
+                    formData.append('Files', file);
+                });
+                
+                // Send request to the server
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                // Hide spinner
+                spinner.style.display = 'none';
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    
+                    // Show success message
+                    showResponseMessage(`Files uploaded successfully! ${result.filesCount} files processed.`);
+                    
+                    // Save email to cookie (valid for 30 days)
+                    setCookie('userEmail', emailInput.value, 30);
+                    
+                    // Reset the drop zone
+                    resetDropZone();
+                    
+                    // Update button state
+                    updateButtonState();
+                } else {
+                    // Try to get detailed error message
+                    let errorMessage = 'Server error occurred';
+                    try {
+                        const errorData = await response.text();
+                        errorMessage = errorData || `Error: ${response.status} ${response.statusText}`;
+                    } catch (err) {
+                        errorMessage = `Error: ${response.status} ${response.statusText}`;
+                    }
+                    
+                    // Show error message
+                    showResponseMessage(errorMessage, true);
+                    sendButton.disabled = false;
+                }
+            } catch (error) {
+                // Handle network errors
+                console.error('Error:', error);
+                spinner.style.display = 'none';
+                showResponseMessage(`Network error: ${error.message}`, true);
+                sendButton.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
